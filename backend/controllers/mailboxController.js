@@ -27,19 +27,22 @@ exports.remove = async (req, res) => {
 };
 
 exports.unlock = async (req, res) => {
-    const mailbox = await Mailbox.findById(req.params.id);
+    try {
+        const mailbox = await Mailbox.findById(req.params.id);
+        if (!mailbox) return res.status(404).json({ message: "Mailbox not found" });
 
-    mailbox.isLocked = false;
-    await mailbox.save();
+        mailbox.isLocked = false;
+        await mailbox.save();
 
-    await UnlockLog.create({
-        mailbox: mailbox._id,
-        user: req.body.userId,
-        unlockMethod: req.body.method,
-        success: true
-    });
+        await UnlockLog.create({
+            mailbox: mailbox._id,
+            user: req.user.id,          // ← iz JWT, ne iz body
+            unlockMethod: req.body.method || "mobile-app",
+            success: true
+        });
 
-    res.json({
-        message: "Mailbox unlocked"
-    });
+        res.json({ message: "Mailbox unlocked" });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
 };

@@ -40,7 +40,7 @@ function LoginPage({ defaultMode }) {
                     name,
                     email,
                     password,
-                    role: "user"
+                    role: "family"
                 }
             );
 
