@@ -24,22 +24,18 @@ function Dashboard() {
     };
 
     const unlock = async (id) => {
-
+    try {
         await axios.post(
             `http://localhost:5000/api/mailboxes/${id}/unlock`,
-            {
-                userId: "USER_ID",
-                method: "mobile-app"
-            },
-            {
-                headers: {
-                    Authorization: "Bearer " + localStorage.getItem("token")
-                }
-            }
+            { method: "mobile-app" },   // ← userId odstranjen, backend ga vzame iz JWT
+            { headers: { Authorization: "Bearer " + localStorage.getItem("token") } }
         );
-
-        alert("Unlocked");
-    };
+        alert("Paketnik odklenjen!");
+        fetchMailboxes();
+    } catch (err) {
+        alert("Napaka pri odklepanju: " + (err.response?.data?.message || err.message));
+    }
+};
 
     return (
         <div style={{ padding: 40 }}>
