@@ -22,6 +22,12 @@ app.use("/api/users", userRoutes);
 app.use("/api/mailboxes", mailboxRoutes);
 app.use("/api/unlock-logs", unlockLogRoutes);
 
+
+app.use((req, res, next) => {
+    console.log(`[RADAR] Prejet klic: ${req.method} ${req.url}`);
+    next();
+});
+
 app.listen(process.env.PORT, () => {
     console.log(`Server running on port ${process.env.PORT}`);
 });

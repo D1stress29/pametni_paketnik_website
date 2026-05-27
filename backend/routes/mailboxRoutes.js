@@ -23,7 +23,7 @@ router.post("/:id/unlock", async (req, res) => {
     console.log(`--> API POKLICAN! Odklepam paketnik z ID: ${id}`);
 
     try {
-        const mailbox = await Mailbox.findById(id);
+        const mailbox = await Mailbox.findOne({ boxId: req.body.scannedBoxId });
         
         if (!mailbox) {
             return res.status(404).json({ success: false, message: "Paketnik ne obstaja." });
