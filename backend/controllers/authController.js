@@ -17,7 +17,7 @@ exports.register = async (req, res) => {
             role
         });
 
-        console.log("User created:", user); +
+        console.log("User created:", user); 
 
         res.json(user);
     } catch(err) {
@@ -40,11 +40,11 @@ exports.login = async (req, res) => {
 
         if (!valid) {
             return res.status(400).json({ message: "Wrong password" });
-        }
+        }   
 
         const token = jwt.sign(
             { id: user._id, role: user.role },
-            process.env.JWT_SECRET
+            process.env.JWT_SECRET, { expiresIn: "7d" }
         );
 
         res.json({ token, user });
