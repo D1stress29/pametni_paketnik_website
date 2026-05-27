@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
 
@@ -159,6 +159,11 @@ function LoginPage({ defaultMode }) {
     const [message, setMessage] = useState("");
     const navigate = useNavigate();
 
+    useEffect(() => {
+        setIsRegistering(defaultMode === "register");
+        setMessage("");
+    }, [defaultMode]);
+
     const login = async () => {
         try {
             const res = await axios.post(
@@ -221,7 +226,7 @@ function LoginPage({ defaultMode }) {
 
             <main>
                 <section className="hero">
-                    <h1>{isRegistering ? "Kreiraj račun" : "Škatlarji Login"}</h1>
+                    <h1>{isRegistering ? "Ustvari račun" : "Škatlarji Login"}</h1>
 
                     <div className="form-row">
                         {isRegistering && (
