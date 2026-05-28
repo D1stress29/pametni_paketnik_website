@@ -3,6 +3,7 @@ const router = express.Router();
 const Mailbox = require("../models/Mailbox");
 const UnlockLog = require("../models/UnlockLog");
 const authMiddleware = require("../middleware/authMiddleware");
+const mailboxController = require("../controllers/mailboxController");
 
 router.get("/", async (req, res) => {
     try {
@@ -45,5 +46,7 @@ router.post("/:id/unlock", authMiddleware, async (req, res) => {
         return res.status(500).json({ success: false, error: error.message });
     }
 });
+
+router.post("/:id/books", authMiddleware, mailboxController.addBooks);
 
 module.exports = router;

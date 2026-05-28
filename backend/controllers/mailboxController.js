@@ -46,3 +46,28 @@ exports.unlock = async (req, res) => {
         res.status(500).json({ error: err.message });
     }
 };
+
+exports.addBooks = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { books } = req.body;
+
+        if (!books || !Array.isArray(books) || books.length === 0) {
+            return res.status(400).json({ success: false, message: "Prosim vnesite seznam knjig." });
+        }
+
+        const mailbox = await Mailbox.findById(id);
+        if (!mailbox) {
+            return res.status(404).json({ success: false, message: "Paketnik ne obstaja." });
+        }
+
+        // Dodaj nove knjige v seznam
+        mailbox.books = [...(mailbox.books || []), ...books];
+        await mailbox.save();
+
+        return res.status(200).json({ success: true, message: "Knjige uspešno dodane!", mailbox });
+    } catch (error) {
+        console.error("Napaka pri dodajanju knjig:", error);
+        return res.status(500).json({ success: false, error: error.message });
+    }
+};

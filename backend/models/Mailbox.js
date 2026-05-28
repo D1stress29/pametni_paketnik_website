@@ -12,7 +12,8 @@ const MailboxSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: "User"
     },
-    items: [String]
+    items: [String],
+    books: [String]
 }, { timestamps: true });
 
 module.exports = mongoose.model("Mailbox", MailboxSchema);
