@@ -219,7 +219,7 @@ function LoginPage({ defaultMode }) {
                     <div className="nav-actions">
                         <Link to="/login" className="btn-primary">Prijava</Link>
                         <Link to="/register" className="btn-secondary">Registracija</Link>
-                        <a href="#access-list" className="btn-secondary">Dostopi do pošte</a>
+                        <Link to="/history" className="btn-secondary">Dostopi do pošte</Link>
                     </div>
                 </div>
             </header>
