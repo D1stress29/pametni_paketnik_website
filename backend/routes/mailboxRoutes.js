@@ -2,11 +2,12 @@ const express = require("express");
 const router = express.Router();
 const Mailbox = require("../models/Mailbox");
 const UnlockLog = require("../models/UnlockLog");
-
+const authMiddleware = require("../middleware/authMiddleware");
 
 router.get("/", async (req, res) => {
     try {
-        const mailboxes = await Mailbox.find({});
+        const mailboxes = await Mailbox.find({})
+            .populate("owner", "name email");
         return res.status(200).json(mailboxes);
     } catch (error) {
         console.error("Napaka pri branju paketnikov:", error);
@@ -14,17 +15,15 @@ router.get("/", async (req, res) => {
     }
 });
 
-
-router.post("/:id/unlock", async (req, res) => {
-    const { id } = req.params; 
-    const { method } = req.body; 
-    const userId = req.user ? req.user._id : null;
+router.post("/:id/unlock", authMiddleware, async (req, res) => {
+    const { id } = req.params;
+    const { method } = req.body;
+    const userId = req.user?.id;
 
     console.log(`--> API POKLICAN! Odklepam paketnik z ID: ${id}`);
 
     try {
-        const mailbox = await Mailbox.findOne({ boxId: req.body.scannedBoxId });
-        
+        const mailbox = await Mailbox.findById(id);
         if (!mailbox) {
             return res.status(404).json({ success: false, message: "Paketnik ne obstaja." });
         }
@@ -33,15 +32,14 @@ router.post("/:id/unlock", async (req, res) => {
         await mailbox.save();
 
         const noviLog = new UnlockLog({
-            mailbox: mailbox._id,         
-            user: userId,                 
-            unlockMethod: method || "mobile-app",  
-            success: true              
+            mailbox: mailbox._id,
+            user: userId,
+            unlockMethod: method || "mobile-app",
+            success: true
         });
         await noviLog.save();
 
         return res.status(200).json({ success: true, message: "Paketnik uspešno odklenjen!" });
-
     } catch (error) {
         console.error("Napaka pri odklepanju:", error);
         return res.status(500).json({ success: false, error: error.message });

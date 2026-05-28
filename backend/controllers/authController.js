@@ -18,8 +18,10 @@ exports.register = async (req, res) => {
         });
 
         console.log("User created:", user); 
+        const safeUser = user.toObject();
+        delete safeUser.passwordHash;
 
-        res.json(user);
+        res.json(safeUser);
     } catch(err) {
         console.log("Register error:", err.message); 
         res.status(500).json({ error: err.message });
@@ -47,7 +49,9 @@ exports.login = async (req, res) => {
             process.env.JWT_SECRET, { expiresIn: "7d" }
         );
 
-        res.json({ token, user });
+        const safeUser = user.toObject();
+        delete safeUser.passwordHash;
+        res.json({ token, user: safeUser });
 
     } catch(err) {
         res.status(500).json({ error: err.message });

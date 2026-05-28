@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import axios from "axios";
 
 function Dashboard() {
@@ -44,7 +45,15 @@ function Dashboard() {
 
     return (
         <div style={{ padding: 40 }}>
-            <h1>Dashboard</h1>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
+                <div>
+                    <h1>Dashboard</h1>
+                    <p>Pregled poštnih paketnikov, odklep in hitri dostop do profila.</p>
+                </div>
+                <Link to="/profile" style={{ textDecoration: "none", padding: "10px 16px", borderRadius: 10, background: "#1d6b3d", color: "white" }}>
+                    Moj profil
+                </Link>
+            </div>
 
             {/* Če pride do napake, jo izpišemo uporabniku namesto crasha */}
             {error && <p style={{ color: "red", fontWeight: "bold" }}>{error}</p>}
@@ -53,14 +62,13 @@ function Dashboard() {
                 <p>Ni najdenih paketnikov.</p>
             ) : (
                 mailboxes.map(mailbox => (
-                    <div key={mailbox._id}>
+                    <div key={mailbox._id} style={{ marginBottom: 18, padding: 18, border: "1px solid #ddd", borderRadius: 12 }}>
                         <h3>{mailbox.name}</h3>
                         <p>{mailbox.location}</p>
-
+                        <p style={{ color: "#555" }}><strong>Ustvaril:</strong> {mailbox.owner?.name || "Neznan"} | <strong>Ustvarjeno:</strong> {new Date(mailbox.createdAt).toLocaleDateString("sl-SI")}</p>
                         <button onClick={() => unlock(mailbox._id)}>
                             Unlock
                         </button>
-                        <hr />
                     </div>
                 ))
             )}
