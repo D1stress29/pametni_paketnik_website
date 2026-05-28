@@ -26,23 +26,50 @@ exports.remove = async (req, res) => {
     res.json({ message: "Deleted" });
 };
 
+JavaScript
+const Mailbox = require("../models/Mailbox");
+const UnlockLog = require("../models/UnlockLog");
+
 exports.unlock = async (req, res) => {
+    // 1. IZPIS PODATKOV V KONZOLO STREŽNIKA
+    console.log("==========================================");
+    console.log("--> PREJETA ZAHTEVA ZA ODKLEPANJE <--");
+    console.log("1. URL parametri (req.params):", req.params);
+    console.log("2. Telo zahteve (req.body):", req.body);
+    console.log("3. Podatki iz JWT (req.user):", req.user);
+    console.log("==========================================");
+
     try {
         const mailbox = await Mailbox.findById(req.params.id);
-        if (!mailbox) return res.status(404).json({ message: "Mailbox not found" });
+        if (!mailbox) {
+            console.log("NAPAKA: Paketnik z ID " + req.params.id + " ne obstaja v bazi.");
+            return res.status(404).json({ message: "Mailbox not found" });
+        }
 
         mailbox.isLocked = false;
         await mailbox.save();
 
-        await UnlockLog.create({
+        // Ugotovimo, kje vse se lahko skriva ID uporabnika
+        let prejetiUserId = null;
+        if (req.user && req.user.id) prejetiUserId = req.user.id;
+        if (req.user && req.user._id) prejetiUserId = req.user._id;
+        if (req.body && req.body.userId) prejetiUserId = req.body.userId;
+
+        console.log("Končni ugotovljeni UserId za vnos v bazo:", prejetiUserId);
+
+        // USTVARJANJE LOGA
+        const noviLog = await UnlockLog.create({
             mailbox: mailbox._id,
-            user: req.user.id,          // ← iz JWT, ne iz body
-            unlockMethod: req.body.method || "mobile-app",
+            user: prejetiUserId, // Če je to null, bo Mongoose polje pustil prazno
+            unlockMethod: req.body.unlockMethod || "Mobilna aplikacija",
             success: true
         });
 
-        res.json({ message: "Mailbox unlocked" });
+        console.log("LOG USPEŠNO ZAPISAN V BAZO:", noviLog);
+        res.json({ message: "Mailbox unlocked successfully", log: noviLog });
+
     } catch (err) {
+        console.error("KRITIČNA NAPAKA PRI SHRANJEVANJU:", err);
         res.status(500).json({ error: err.message });
     }
 };
