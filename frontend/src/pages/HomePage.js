@@ -131,7 +131,6 @@ function HomePage() {
                         <Link to="/login" className="btn-primary">Prijava</Link>
                         <Link to="/register" className="btn-secondary">Registracija</Link>
                         <Link to="/history" className="btn-secondary">Dostopi do pošte</Link>
-                        <Link to="/profile" className="btn-secondary">Moj profil</Link>
                     </div>
                 </div>
             </header>
