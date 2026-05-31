@@ -430,7 +430,54 @@ function roleBadge(role) { return <span className={`badge badge-${role}`}>{ROLE_
 function formatDate(iso) { return new Date(iso).toLocaleString("sl-SI", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" }); }
 
 
-
+function StatsTab() {
+    const [stats, setStats] = useState(null);
+    const [loading, setLoading] = useState(true);
+    useEffect(() => {
+        axios.get(`${API}/stats`, { headers: { Authorization: "Bearer " + localStorage.getItem("token") } })
+            .then(r => setStats(r.data)).catch(() => {}).finally(() => setLoading(false));
+    }, []);
+    if (loading) return <div className="loading">Nalagam statistike</div>;
+    return (
+        <>
+            <div className="stats-grid">
+                <div className="stat-card" style={{"--accent": "var(--blue)"}}>
+                    <div className="stat-label">Skupaj uporabnikov</div>
+                    <div className="stat-value" style={{color:"var(--blue)"}}>{stats?.totalUsers ?? "—"}</div>
+                    <div className="stat-sub">registriranih računov</div>
+                </div>
+                <div className="stat-card">
+                    <div className="stat-label">Paketniki</div>
+                    <div className="stat-value">{stats?.totalMailboxes ?? "—"}</div>
+                    <div className="stat-sub">v sistemu</div>
+                </div>
+                <div className="stat-card" style={{"--accent": "var(--yellow)"}}>
+                    <div className="stat-label">Vsi odklepi</div>
+                    <div className="stat-value" style={{color:"var(--yellow)"}}>{stats?.totalLogs ?? "—"}</div>
+                    <div className="stat-sub">skupaj beleženih</div>
+                </div>
+                <div className="stat-card">
+                    <div className="stat-label">Danes</div>
+                    <div className="stat-value">{stats?.recentLogs ?? "—"}</div>
+                    <div className="stat-sub">odklepov v zadnjih 24h</div>
+                </div>
+                <div className="stat-card" style={{"--accent": stats?.successRate >= 90 ? "var(--green)" : "var(--yellow)"}}>
+                    <div className="stat-label">Uspešnost</div>
+                    <div className="stat-value" style={{color: stats?.successRate >= 90 ? "var(--green)" : "var(--yellow)"}}>{stats?.successRate ?? "—"}%</div>
+                    <div className="stat-sub">uspešnih odklepov</div>
+                </div>
+            </div>
+            <div className="section-card" style={{padding: "28px 24px"}}>
+                <h2 style={{fontSize:"0.95rem", fontWeight:600, marginBottom:14, color:"var(--text-muted)"}}>ℹ️ Opomba za admina</h2>
+                <p style={{color:"var(--text-muted)", fontSize:"0.88rem", lineHeight:1.7}}>
+                    Ta nadzorna plošča je namenjena samo administratorjem sistema <strong style={{color:"var(--text)"}}>Pametni Paketnik</strong>.<br/>
+                    Z njo upravljaš vse uporabnike (vloge, brisanje), vse paketnike in gledaš celotno zgodovino odklepov.<br/><br/>
+                    Za aktivacijo admin dostopa: v MongoDB ročno nastavi <code style={{color:"var(--green)", background:"var(--green-dim)", padding:"1px 6px", borderRadius:4}}>role: "admin"</code> na želenem računu.
+                </p>
+            </div>
+        </>
+    );
+}
 
 const TABS = [
     { id: "stats", label: "Statistike", icon: "📊" },
