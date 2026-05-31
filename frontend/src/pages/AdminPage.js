@@ -429,6 +429,40 @@ const ROLE_LABELS = { admin: "Admin", owner: "Lastnik", courier: "Kurir", family
 function roleBadge(role) { return <span className={`badge badge-${role}`}>{ROLE_LABELS[role] || role}</span>; }
 function formatDate(iso) { return new Date(iso).toLocaleString("sl-SI", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" }); }
 
+function EditUserModal({ user, onClose, onSave }) {
+    const [form, setForm] = useState({ name: user.name || "", email: user.email || "", role: user.role || "family" });
+    const [saving, setSaving] = useState(false);
+    const save = async () => {
+        setSaving(true);
+        try {
+            const res = await axios.put(`${API}/users/${user._id}`, form, { headers: { Authorization: "Bearer " + localStorage.getItem("token") } });
+            onSave(res.data);
+        } catch (err) { alert("Napaka: " + (err.response?.data?.message || err.message)); }
+        finally { setSaving(false); }
+    };
+    return (
+        <div className="modal-overlay" onClick={onClose}>
+            <div className="modal" onClick={e => e.stopPropagation()}>
+                <h3>✏️ Uredi uporabnika</h3>
+                <div className="form-group"><label>Ime</label><input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} /></div>
+                <div className="form-group"><label>Email</label><input value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} /></div>
+                <div className="form-group">
+                    <label>Vloga</label>
+                    <select value={form.role} onChange={e => setForm(f => ({ ...f, role: e.target.value }))}>
+                        <option value="admin">Admin</option>
+                        <option value="owner">Lastnik (owner)</option>
+                        <option value="courier">Kurir (courier)</option>
+                        <option value="family">Družina (family)</option>
+                    </select>
+                </div>
+                <div className="modal-actions">
+                    <button className="btn btn-ghost" onClick={onClose}>Prekliči</button>
+                    <button className="btn btn-primary" onClick={save} disabled={saving}>{saving ? "Shranjujem..." : "Shrani"}</button>
+                </div>
+            </div>
+        </div>
+    );
+}
 
 function StatsTab() {
     const [stats, setStats] = useState(null);
