@@ -571,6 +571,70 @@ function UsersTab() {
 }
 
 
+function MailboxesTab() {
+    const [mailboxes, setMailboxes] = useState([]);
+    const [users, setUsers] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [search, setSearch] = useState("");
+    const [editMailbox, setEditMailbox] = useState(null);
+    const [showAdd, setShowAdd] = useState(false);
+    const [error, setError] = useState("");
+    useEffect(() => {
+        Promise.all([
+            axios.get(`${API}/mailboxes`, { headers: { Authorization: "Bearer " + localStorage.getItem("token") } }),
+            axios.get(`${API}/users`, { headers: { Authorization: "Bearer " + localStorage.getItem("token") } })
+        ]).then(([m, u]) => { setMailboxes(m.data); setUsers(u.data); })
+        .catch(() => setError("Napaka pri nalaganju podatkov."))
+        .finally(() => setLoading(false));
+    }, []);
+    const deleteMailbox = async (id, name) => {
+        if (!window.confirm(`Izbrisati paketnik "${name}" in vse njegove loge?`)) return;
+        try {
+            await axios.delete(`${API}/mailboxes/${id}`, { headers: { Authorization: "Bearer " + localStorage.getItem("token") } });
+            setMailboxes(m => m.filter(x => x._id !== id));
+        } catch (err) { alert("Napaka: " + (err.response?.data?.message || err.message)); }
+    };
+    const filtered = mailboxes.filter(m => m.name?.toLowerCase().includes(search.toLowerCase()) || m.location?.toLowerCase().includes(search.toLowerCase()) || m.deviceId?.toLowerCase().includes(search.toLowerCase()));
+    return (
+        <>
+            {(editMailbox || showAdd) && <EditMailboxModal mailbox={editMailbox} users={users} onClose={() => { setEditMailbox(null); setShowAdd(false); }} onSave={(saved, isNew) => { if (isNew) setMailboxes(m => [saved, ...m]); else setMailboxes(m => m.map(x => x._id === saved._id ? saved : x)); setEditMailbox(null); setShowAdd(false); }} />}
+            <div className="section-card">
+                <div className="section-header">
+                    <h2>📦 Paketniki <span className="count-badge">{mailboxes.length}</span></h2>
+                    <div className="top-bar">
+                        <input className="search-input" placeholder="Iskanje paketnikov..." value={search} onChange={e => setSearch(e.target.value)} />
+                        <button className="btn btn-primary" onClick={() => setShowAdd(true)}>+ Dodaj paketnik</button>
+                    </div>
+                </div>
+                {error && <div className="error-msg">{error}</div>}
+                {loading ? <div className="loading">Nalagam paketnike</div> : filtered.length === 0 ? (
+                    <div className="empty-state"><div className="icon">📦</div><div>Ni najdenih paketnikov.</div></div>
+                ) : (
+                    <table className="data-table">
+                        <thead><tr><th>Ime</th><th>Lokacija</th><th>Device ID</th><th>Stanje</th><th>Lastnik</th><th>Dejanja</th></tr></thead>
+                        <tbody>
+                            {filtered.map(m => (
+                                <tr key={m._id}>
+                                    <td style={{fontWeight:600}}>{m.name}</td>
+                                    <td className="text-muted">{m.location || "—"}</td>
+                                    <td><code className="mono">{m.deviceId || "—"}</code></td>
+                                    <td><span className={`badge ${m.isLocked ? "badge-locked" : "badge-unlocked"}`}>{m.isLocked ? "🔒 Zaklenjen" : "🔓 Odklenjen"}</span></td>
+                                    <td className="text-muted">{m.owner ? `${m.owner.name || "—"} (${m.owner.email || "—"})` : <span style={{opacity:0.4}}>Brez lastnika</span>}</td>
+                                    <td><div className="actions-row">
+                                        <button className="btn btn-ghost btn-sm" onClick={() => setEditMailbox(m)}>✏️ Uredi</button>
+                                        <button className="btn btn-danger btn-sm" onClick={() => deleteMailbox(m._id, m.name)}>🗑 Izbriši</button>
+                                    </div></td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                )}
+            </div>
+        </>
+    );
+}
+
+
 const TABS = [
     { id: "stats", label: "Statistike", icon: "📊" },
     { id: "users", label: "Uporabniki", icon: "👥" },
