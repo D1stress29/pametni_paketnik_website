@@ -15,17 +15,42 @@ function App() {
                 <Route path="/" element={<HomePage />} />
                 <Route path="/login" element={<LoginPage />} />
                 <Route path="/register" element={<LoginPage defaultMode="register" />} />
-                <Route path="/dashboard" element={
-                    <PrivateRoute><Dashboard /></PrivateRoute>
-                } />
-                <Route path="/history" element={
-                    <PrivateRoute><UnlockHistoryPage /></PrivateRoute>
-                } />
-                <Route path="/admin" element={
-                    <AdminRoute><AdminPage /></AdminRoute>
-                <Route path="/profile" element={
-                    <PrivateRoute><ProfilePage /></PrivateRoute>
-                } />
+
+                <Route
+                    path="/dashboard"
+                    element={
+                        <PrivateRoute>
+                            <Dashboard />
+                        </PrivateRoute>
+                    }
+                />
+
+                <Route
+                    path="/history"
+                    element={
+                        <PrivateRoute>
+                            <UnlockHistoryPage />
+                        </PrivateRoute>
+                    }
+                />
+
+                <Route
+                    path="/admin"
+                    element={
+                        <AdminRoute>
+                            <AdminPage />
+                        </AdminRoute>
+                    }
+                />
+
+                <Route
+                    path="/profile"
+                    element={
+                        <PrivateRoute>
+                            <ProfilePage />
+                        </PrivateRoute>
+                    }
+                />
             </Routes>
         </BrowserRouter>
     );
