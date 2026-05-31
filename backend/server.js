@@ -7,6 +7,8 @@ const authRoutes = require("./routes/authRoutes");
 const userRoutes = require("./routes/userRoutes");
 const mailboxRoutes = require("./routes/mailboxRoutes");
 const unlockLogRoutes = require("./routes/unlockLogRoutes");
+const adminRoutes = require("./routes/adminRoutes");
+
 
 const app = express();
 
@@ -21,6 +23,8 @@ app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/mailboxes", mailboxRoutes);
 app.use("/api/unlock-logs", unlockLogRoutes);
+app.use("/api/admin", adminRoutes);
+
 
 
 app.use((req, res, next) => {
