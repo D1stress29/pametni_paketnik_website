@@ -1,5 +1,8 @@
-import { useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
+import axios from "axios";
+
+const API = "http://localhost:5000/api/admin";
 
 const styles = `
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
@@ -607,7 +610,6 @@ function UsersTab() {
     );
 }
 
-
 function MailboxesTab() {
     const [mailboxes, setMailboxes] = useState([]);
     const [users, setUsers] = useState([]);
@@ -728,30 +730,19 @@ function LogsTab() {
     );
 }
 
-
-
 const TABS = [
-    { id: "stats", label: "Statistike", icon: "📊" },
-    { id: "users", label: "Uporabniki", icon: "👥" },
-    { id: "mailboxes", label: "Paketniki", icon: "📦" },
-    { id: "logs", label: "Logi", icon: "📋" },
+    { id: "stats",     label: "Statistike", icon: "📊" },
+    { id: "users",     label: "Uporabniki", icon: "👥" },
+    { id: "mailboxes", label: "Paketniki",  icon: "📦" },
+    { id: "logs",      label: "Logi",       icon: "📋" },
 ];
-
-
 
 function AdminPage() {
     const [tab, setTab] = useState("stats");
     const navigate = useNavigate();
-
     const user = JSON.parse(localStorage.getItem("user") || "{}");
-
-    const logout = () => {
-        localStorage.removeItem("token");
-        localStorage.removeItem("user");
-        navigate("/login");
-    };
-
-    
+    const logout = () => { localStorage.removeItem("token"); localStorage.removeItem("user"); navigate("/login"); };
+    if (!localStorage.getItem("token")) { navigate("/login"); return null; }
 
     return (
         <>
@@ -760,49 +751,35 @@ function AdminPage() {
                 <aside className="sidebar">
                     <div className="sidebar-logo">
                         <div className="icon">📦</div>
-                        <div>
-                            <span>Škatlarji</span>
-                            <small>Admin panel</small>
-                        </div>
+                        <div><span>Škatlarji</span><small>Admin panel</small></div>
                     </div>
-
                     {TABS.map(t => (
-                        <div
-                            key={t.id}
-                            className={`nav-item ${tab === t.id ? "active" : ""}`}
-                            onClick={() => setTab(t.id)}
-                        >
-                            <span className="nav-icon">{t.icon}</span>
-                            {t.label}
+                        <div key={t.id} className={`nav-item ${tab === t.id ? "active" : ""}`} onClick={() => setTab(t.id)}>
+                            <span className="nav-icon">{t.icon}</span>{t.label}
                         </div>
                     ))}
-
-                    <div
-                        className="nav-item"
-                        onClick={() => navigate("/dashboard")}
-                    >
-                        <span className="nav-icon">🏠</span>
-                        Dashboard
+                    <div className="nav-item" onClick={() => navigate("/dashboard")}>
+                        <span className="nav-icon">🏠</span>Dashboard
                     </div>
-
                     <div className="sidebar-bottom">
-                        <div className="admin-badge">
-                            ⚡ {user.name || "Admin"}
-                        </div>
-
-                        <button
-                            className="logout-btn"
-                            onClick={logout}
-                        >
-                            🚪 Odjava
-                        </button>
+                        <div className="admin-badge"><span>⚡</span> {user.name || "Admin"}</div>
+                        <button className="logout-btn" onClick={logout}>🚪 Odjava</button>
                     </div>
                 </aside>
-
                 <main className="main-content">
                     <div className="page-header">
-                        <h1>Admin panel</h1>
+                        <h1>{TABS.find(t => t.id === tab)?.icon} {TABS.find(t => t.id === tab)?.label ?? "Admin"}</h1>
+                        <p>
+                            {tab === "stats"     && "Pregled sistema v realnem času"}
+                            {tab === "users"     && "Upravljanje z vsemi registriranimi uporabniki"}
+                            {tab === "mailboxes" && "Pregled in upravljanje vseh paketnikov"}
+                            {tab === "logs"      && "Celotna zgodovina odklepov paketnikov"}
+                        </p>
                     </div>
+                    {tab === "stats"     && <StatsTab />}
+                    {tab === "users"     && <UsersTab />}
+                    {tab === "mailboxes" && <MailboxesTab />}
+                    {tab === "logs"      && <LogsTab />}
                 </main>
             </div>
         </>
