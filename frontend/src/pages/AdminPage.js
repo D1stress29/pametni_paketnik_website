@@ -425,12 +425,21 @@ const styles = `
     }
 `;
 
+const ROLE_LABELS = { admin: "Admin", owner: "Lastnik", courier: "Kurir", family: "Družina" };
+function roleBadge(role) { return <span className={`badge badge-${role}`}>{ROLE_LABELS[role] || role}</span>; }
+function formatDate(iso) { return new Date(iso).toLocaleString("sl-SI", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" }); }
+
+
+
+
 const TABS = [
     { id: "stats", label: "Statistike", icon: "📊" },
     { id: "users", label: "Uporabniki", icon: "👥" },
     { id: "mailboxes", label: "Paketniki", icon: "📦" },
     { id: "logs", label: "Logi", icon: "📋" },
 ];
+
+
 
 function AdminPage() {
     const [tab, setTab] = useState("stats");
@@ -443,6 +452,8 @@ function AdminPage() {
         localStorage.removeItem("user");
         navigate("/login");
     };
+
+    
 
     return (
         <>
