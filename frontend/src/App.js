@@ -3,6 +3,7 @@ import HomePage from "./pages/HomePage";
 import LoginPage from "./pages/LoginPage";
 import Dashboard from "./pages/Dashboard";
 import UnlockHistoryPage from "./pages/UnlockHistoryPage";
+import ProfilePage from "./pages/ProfilePage";
 import PrivateRoute from "./pages/PrivateRoute";
 function App() {
     return (
@@ -16,6 +17,9 @@ function App() {
                 } />
                 <Route path="/history" element={
                     <PrivateRoute><UnlockHistoryPage /></PrivateRoute>
+                } />
+                <Route path="/profile" element={
+                    <PrivateRoute><ProfilePage /></PrivateRoute>
                 } />
             </Routes>
         </BrowserRouter>
