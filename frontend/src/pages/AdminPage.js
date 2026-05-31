@@ -464,6 +464,43 @@ function EditUserModal({ user, onClose, onSave }) {
     );
 }
 
+function EditMailboxModal({ mailbox, users, onClose, onSave }) {
+    const isNew = !mailbox;
+    const [form, setForm] = useState({ name: mailbox?.name || "", location: mailbox?.location || "", deviceId: mailbox?.deviceId || "", owner: mailbox?.owner?._id || mailbox?.owner || "" });
+    const [saving, setSaving] = useState(false);
+    const save = async () => {
+        setSaving(true);
+        try {
+            const url = isNew ? `${API}/mailboxes` : `${API}/mailboxes/${mailbox._id}`;
+            const method = isNew ? "post" : "put";
+            const res = await axios[method](url, form, { headers: { Authorization: "Bearer " + localStorage.getItem("token") } });
+            onSave(res.data, isNew);
+        } catch (err) { alert("Napaka: " + (err.response?.data?.message || err.message)); }
+        finally { setSaving(false); }
+    };
+    return (
+        <div className="modal-overlay" onClick={onClose}>
+            <div className="modal" onClick={e => e.stopPropagation()}>
+                <h3>{isNew ? "📦 Dodaj paketnik" : "✏️ Uredi paketnik"}</h3>
+                <div className="form-group"><label>Ime paketnika</label><input placeholder="npr. Vhodni paketnik" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} /></div>
+                <div className="form-group"><label>Lokacija</label><input placeholder="npr. Maribor, Ulica 1" value={form.location} onChange={e => setForm(f => ({ ...f, location: e.target.value }))} /></div>
+                <div className="form-group"><label>Device ID</label><input placeholder="npr. BOX-001" value={form.deviceId} onChange={e => setForm(f => ({ ...f, deviceId: e.target.value }))} /></div>
+                <div className="form-group">
+                    <label>Lastnik</label>
+                    <select value={form.owner} onChange={e => setForm(f => ({ ...f, owner: e.target.value }))}>
+                        <option value="">— Brez lastnika —</option>
+                        {users.map(u => <option key={u._id} value={u._id}>{u.name} ({u.email})</option>)}
+                    </select>
+                </div>
+                <div className="modal-actions">
+                    <button className="btn btn-ghost" onClick={onClose}>Prekliči</button>
+                    <button className="btn btn-primary" onClick={save} disabled={saving}>{saving ? "Shranjujem..." : isNew ? "Dodaj" : "Shrani"}</button>
+                </div>
+            </div>
+        </div>
+    );
+}
+
 function StatsTab() {
     const [stats, setStats] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -633,6 +670,8 @@ function MailboxesTab() {
         </>
     );
 }
+
+
 
 
 const TABS = [
