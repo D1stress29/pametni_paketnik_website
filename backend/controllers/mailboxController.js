@@ -26,9 +26,7 @@ exports.remove = async (req, res) => {
     res.json({ message: "Deleted" });
 };
 
-JavaScript
-const Mailbox = require("../models/Mailbox");
-const UnlockLog = require("../models/UnlockLog");
+
 
 exports.unlock = async (req, res) => {
     // 1. IZPIS PODATKOV V KONZOLO STREŽNIKA
