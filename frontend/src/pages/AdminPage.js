@@ -671,6 +671,62 @@ function MailboxesTab() {
     );
 }
 
+function LogsTab() {
+    const [data, setData] = useState({ logs: [], total: 0, pages: 1 });
+    const [page, setPage] = useState(1);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState("");
+    const load = useCallback(async () => {
+        setLoading(true);
+        try {
+            const res = await axios.get(`${API}/logs?page=${page}&limit=20`, { headers: { Authorization: "Bearer " + localStorage.getItem("token") } });
+            setData(res.data);
+        } catch { setError("Napaka pri nalaganju logov."); }
+        finally { setLoading(false); }
+    }, [page]);
+    useEffect(() => { load(); }, [load]);
+    const deleteLog = async (id) => {
+        if (!window.confirm("Izbrisati ta log?")) return;
+        try {
+            await axios.delete(`${API}/logs/${id}`, { headers: { Authorization: "Bearer " + localStorage.getItem("token") } });
+            setData(d => ({ ...d, logs: d.logs.filter(l => l._id !== id), total: d.total - 1 }));
+        } catch (err) { alert("Napaka: " + (err.response?.data?.message || err.message)); }
+    };
+    return (
+        <div className="section-card">
+            <div className="section-header">
+                <h2>📋 Zgodovina odklepov <span className="count-badge">{data.total} skupaj</span></h2>
+            </div>
+            {error && <div className="error-msg">{error}</div>}
+            {loading ? <div className="loading">Nalagam loge</div> : data.logs.length === 0 ? (
+                <div className="empty-state"><div className="icon">📋</div><div>Ni zabeleženih odklepov.</div></div>
+            ) : (
+                <>
+                    <table className="data-table">
+                        <thead><tr><th>Čas</th><th>Paketnik</th><th>Uporabnik</th><th>Metoda</th><th>Status</th><th></th></tr></thead>
+                        <tbody>
+                            {data.logs.map(log => (
+                                <tr key={log._id}>
+                                    <td className="mono">{formatDate(log.timestamp)}</td>
+                                    <td style={{fontWeight:600}}>{log.mailbox?.name || <span style={{opacity:0.4}}>Izbrisan</span>}</td>
+                                    <td>{log.user ? <div><div style={{fontWeight:500}}>{log.user.name}</div><div className="mono" style={{fontSize:"0.75rem"}}>{log.user.email}</div></div> : <span className="text-muted">Neznan</span>}</td>
+                                    <td><code className="mono">{log.unlockMethod || "—"}</code></td>
+                                    <td><span className={`badge ${log.success ? "badge-success" : "badge-fail"}`}>{log.success ? "✅ Uspešno" : "❌ Neuspešno"}</span></td>
+                                    <td><button className="btn btn-danger btn-sm" onClick={() => deleteLog(log._id)}>🗑</button></td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                    <div className="pagination">
+                        <span>Stran {page} / {data.pages}</span>
+                        <button className="btn btn-ghost btn-sm" disabled={page <= 1} onClick={() => setPage(p => p - 1)}>← Nazaj</button>
+                        <button className="btn btn-ghost btn-sm" disabled={page >= data.pages} onClick={() => setPage(p => p + 1)}>Naprej →</button>
+                    </div>
+                </>
+            )}
+        </div>
+    );
+}
 
 
 
