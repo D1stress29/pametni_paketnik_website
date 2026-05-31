@@ -3,6 +3,7 @@ import HomePage from "./pages/HomePage";
 import LoginPage from "./pages/LoginPage";
 import Dashboard from "./pages/Dashboard";
 import UnlockHistoryPage from "./pages/UnlockHistoryPage";
+import ProfilePage from "./pages/ProfilePage";
 import PrivateRoute from "./pages/PrivateRoute";
 import AdminPage from "./pages/AdminPage";
 import AdminRoute from "./pages/AdminRoute";
@@ -22,6 +23,8 @@ function App() {
                 } />
                 <Route path="/admin" element={
                     <AdminRoute><AdminPage /></AdminRoute>
+                <Route path="/profile" element={
+                    <PrivateRoute><ProfilePage /></PrivateRoute>
                 } />
             </Routes>
         </BrowserRouter>

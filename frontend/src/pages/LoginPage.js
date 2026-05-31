@@ -173,6 +173,7 @@ function LoginPage({ defaultMode }) {
 
             localStorage.setItem("token", res.data.token);
             localStorage.setItem("user", JSON.stringify(res.data.user)); 
+            localStorage.setItem("user", JSON.stringify(res.data.user));
             setMessage("Prijava uspešna. Preusmerjevanje na nadzorno ploščo...");
             navigate("/dashboard");
         } catch (err) {

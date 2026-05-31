@@ -2,12 +2,15 @@ const express = require("express");
 const router = express.Router();
 const Mailbox = require("../models/Mailbox");
 const UnlockLog = require("../models/UnlockLog");
+const authMiddleware = require("../middleware/authMiddleware");
+const mailboxController = require("../controllers/mailboxController");
 
 const protect = require("../middleware/authMiddleware");
 
 router.get("/", async (req, res) => {
     try {
-        const mailboxes = await Mailbox.find({});
+        const mailboxes = await Mailbox.find({})
+            .populate("owner", "name email");
         return res.status(200).json(mailboxes);
     } catch (error) {
         console.error("Napaka pri branju paketnikov:", error);
@@ -15,6 +18,15 @@ router.get("/", async (req, res) => {
     }
 });
 
+router.post("/:id/unlock", authMiddleware, async (req, res) => {
+    const { id } = req.params;
+    const { method } = req.body;
+    const userId = req.user?.id;
+
+    console.log(`--> API POKLICAN! Odklepam paketnik z ID: ${id}`);
+
+    try {
+        const mailbox = await Mailbox.findById(id);
 
 router.post("/:id/unlock", protect, async (req, res) => {
     const { id } = req.params; 
@@ -48,6 +60,14 @@ router.post("/:id/unlock", protect, async (req, res) => {
 
         // 3. Shranjevanje loga za odklepanje (sedaj bo vedno delovalo, saj 'mailbox._id' zagotovo obstaja)
         const noviLog = new UnlockLog({
+            mailbox: mailbox._id,
+            user: userId,
+            unlockMethod: method || "mobile-app",
+            success: true
+        });
+        await noviLog.save();
+
+        return res.status(200).json({ success: true, message: "Paketnik uspešno odklenjen!" });
             mailbox: mailbox._id,         
             user: končniUserId,               
             unlockMethod: metodaOdklepa,  
@@ -63,5 +83,7 @@ router.post("/:id/unlock", protect, async (req, res) => {
         return res.status(500).json({ success: false, error: error.message });
     }
 });
+
+router.post("/:id/books", authMiddleware, mailboxController.addBooks);
 
 module.exports = router;
