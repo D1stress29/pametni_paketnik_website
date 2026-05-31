@@ -479,6 +479,64 @@ function StatsTab() {
     );
 }
 
+function UsersTab() {
+    const [users, setUsers] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [search, setSearch] = useState("");
+    const [editUser, setEditUser] = useState(null);
+    const [error, setError] = useState("");
+    const load = useCallback(async () => {
+        try {
+            const res = await axios.get(`${API}/users`, { headers: { Authorization: "Bearer " + localStorage.getItem("token") } });
+            setUsers(res.data);
+        } catch { setError("Napaka pri nalaganju uporabnikov."); }
+        finally { setLoading(false); }
+    }, []);
+    useEffect(() => { load(); }, [load]);
+    const deleteUser = async (id, name) => {
+        if (!window.confirm(`Res izbrisati uporabnika "${name}"?`)) return;
+        try {
+            await axios.delete(`${API}/users/${id}`, { headers: { Authorization: "Bearer " + localStorage.getItem("token") } });
+            setUsers(u => u.filter(x => x._id !== id));
+        } catch (err) { alert("Napaka: " + (err.response?.data?.message || err.message)); }
+    };
+    const filtered = users.filter(u => u.name?.toLowerCase().includes(search.toLowerCase()) || u.email?.toLowerCase().includes(search.toLowerCase()));
+    return (
+        <>
+            {editUser && <EditUserModal user={editUser} onClose={() => setEditUser(null)} onSave={(updated) => { setUsers(u => u.map(x => x._id === updated._id ? updated : x)); setEditUser(null); }} />}
+            <div className="section-card">
+                <div className="section-header">
+                    <h2>👥 Uporabniki <span className="count-badge">{users.length}</span></h2>
+                    <input className="search-input" placeholder="Iskanje po imenu ali emailu..." value={search} onChange={e => setSearch(e.target.value)} />
+                </div>
+                {error && <div className="error-msg">{error}</div>}
+                {loading ? <div className="loading">Nalagam uporabnike</div> : filtered.length === 0 ? (
+                    <div className="empty-state"><div className="icon">👤</div><div>Ni najdenih uporabnikov.</div></div>
+                ) : (
+                    <table className="data-table">
+                        <thead><tr><th>Ime</th><th>Email</th><th>Vloga</th><th>Registriran</th><th>Dejanja</th></tr></thead>
+                        <tbody>
+                            {filtered.map(u => (
+                                <tr key={u._id}>
+                                    <td style={{fontWeight:600}}>{u.name || <span className="text-muted">—</span>}</td>
+                                    <td className="mono">{u.email}</td>
+                                    <td>{roleBadge(u.role)}</td>
+                                    <td className="mono">{u.createdAt ? formatDate(u.createdAt) : "—"}</td>
+                                    <td><div className="actions-row">
+                                        <button className="btn btn-ghost btn-sm" onClick={() => setEditUser(u)}>✏️ Uredi</button>
+                                        <button className="btn btn-danger btn-sm" onClick={() => deleteUser(u._id, u.name)}>🗑 Izbriši</button>
+                                    </div></td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                )}
+            </div>
+        </>
+    );
+}
+
+
 const TABS = [
     { id: "stats", label: "Statistike", icon: "📊" },
     { id: "users", label: "Uporabniki", icon: "👥" },
