@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import Header from "../components/Header";
 import axios from "axios";
 
 function Dashboard() {
@@ -91,16 +92,16 @@ function Dashboard() {
     };
 
     return (
-        <div style={{ padding: 40 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
-                <div>
-                    <h1>Dashboard</h1>
-                    <p>Pregled poštnih paketnikov, odklep in hitri dostop do profila.</p>
+        <>
+            <Header />
+
+            <div style={{ padding: 40 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
+                    <div>
+                        <h1>Dashboard</h1>
+                        <p>Pregled poštnih paketnikov, odklep in hitri dostop do profila.</p>
+                    </div>
                 </div>
-                <Link to="/profile" style={{ textDecoration: "none", padding: "10px 16px", borderRadius: 10, background: "#1d6b3d", color: "white" }}>
-                    Moj profil
-                </Link>
-            </div>
 
             {/* Če pride do napake, jo izpišemo uporabniku namesto crasha */}
             {error && <p style={{ color: "red", fontWeight: "bold" }}>{error}</p>}
@@ -170,6 +171,7 @@ function Dashboard() {
                 ))
             )}
         </div>
+        </>
     );
 }
 
