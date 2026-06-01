@@ -33,9 +33,12 @@ function UnlockHistoryPage() {
 
             <div style={{ padding: 40, maxWidth: 800, margin: "0 auto" }}>
                 <h1>Moja zgodovina odklepov</h1>
+                <Link to="/dashboard" style={{ display: "inline-block", marginBottom: 18, textDecoration: "none", padding: "8px 14px", borderRadius: 999, background: "rgba(255,255,255,0.18)", color: "black", border: "1px solid black" }}>
+                    Nazaj na dashboard
+                </Link>
 
                 {loading && <p>Nalagam...</p>}
-            {error && <p style={{ color: "red" }}>{error}</p>}
+                {error && <p style={{ color: "red" }}>{error}</p>}
 
             {!loading && logs.length === 0 && (
                 <p>Še ni zabeleženih odklepov.</p>
