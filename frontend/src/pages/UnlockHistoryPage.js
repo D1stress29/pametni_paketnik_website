@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
 import { Link } from "react-router-dom";
+import Header from "../components/Header";
 
 function UnlockHistoryPage() {
     const [logs, setLogs] = useState([]);
@@ -27,11 +28,13 @@ function UnlockHistoryPage() {
     const formatDate = (iso) => new Date(iso).toLocaleString("sl-SI");
 
     return (
-        <div style={{ padding: 40, maxWidth: 800, margin: "0 auto" }}>
-            <h1>Moja zgodovina odklepov</h1>
-            <Link to="/dashboard">← Nazaj na dashboard</Link>
+        <>
+            <Header />
 
-            {loading && <p>Nalagam...</p>}
+            <div style={{ padding: 40, maxWidth: 800, margin: "0 auto" }}>
+                <h1>Moja zgodovina odklepov</h1>
+
+                {loading && <p>Nalagam...</p>}
             {error && <p style={{ color: "red" }}>{error}</p>}
 
             {!loading && logs.length === 0 && (
@@ -58,6 +61,7 @@ function UnlockHistoryPage() {
                 </div>
             ))}
         </div>
+    </>
     );
 }
 
