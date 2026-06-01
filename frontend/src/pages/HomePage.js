@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import Header from "../components/Header";
 
 const styles = `
     :root {
@@ -121,19 +121,7 @@ function HomePage() {
     return (
         <>
             <style>{styles}</style>
-            <header>
-                <div className="nav-row">
-                    <div className="brand">
-                        <i className="fa-solid fa-box-open"></i>
-                        <span>Škatlarji</span>
-                    </div>
-                    <div className="nav-actions">
-                        <Link to="/login" className="btn-primary">Prijava</Link>
-                        <Link to="/register" className="btn-secondary">Registracija</Link>
-                        <Link to="/history" className="btn-secondary">Dostopi do pošte</Link>
-                    </div>
-                </div>
-            </header>
+            <Header />
 
             <main>
                 <section className="hero">
