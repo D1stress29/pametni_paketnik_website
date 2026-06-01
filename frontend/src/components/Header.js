@@ -3,18 +3,37 @@ import { Link, useNavigate } from "react-router-dom";
 
 function Header() {
     const [isLogged, setIsLogged] = useState(false);
+    const [isAdmin, setIsAdmin] = useState(false);
     const navigate = useNavigate();
 
     useEffect(() => {
-        setIsLogged(!!localStorage.getItem("token"));
-        const onStorage = () => setIsLogged(!!localStorage.getItem("token"));
+        const updateAuth = () => {
+            const tokenExists = !!localStorage.getItem("token");
+            setIsLogged(tokenExists);
+
+            if (tokenExists) {
+                try {
+                    const user = JSON.parse(localStorage.getItem("user") || "null");
+                    setIsAdmin(user?.role === "admin");
+                } catch {
+                    setIsAdmin(false);
+                }
+            } else {
+                setIsAdmin(false);
+            }
+        };
+
+        updateAuth();
+        const onStorage = () => updateAuth();
         window.addEventListener("storage", onStorage);
         return () => window.removeEventListener("storage", onStorage);
     }, []);
 
     const handleLogout = () => {
         localStorage.removeItem("token");
+        localStorage.removeItem("user");
         setIsLogged(false);
+        setIsAdmin(false);
         navigate("/");
     };
 
@@ -93,7 +112,10 @@ function Header() {
 
                     {isLogged ? (
                         <>
-                            <Link to="/profile" style={btnSolid}>Moj profil</Link>
+                            {isAdmin && (
+                                <Link to="/admin" style={btnOutline}>Admin</Link>
+                            )}
+                            <Link to="/profile" style={btnOutline}>Moj profil</Link>
                             <button onClick={handleLogout} style={{ ...btnOutline, cursor: "pointer" }}>Odjava</button>
                         </>
                     ) : (
