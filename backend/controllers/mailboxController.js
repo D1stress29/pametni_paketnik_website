@@ -6,6 +6,39 @@ exports.getAll = async (req, res) => {
     res.json(mailboxes);
 };
 
+// Mark interest by current authenticated user for a specific book subdocument
+exports.interestBook = async (req, res) => {
+    try {
+        const { mailboxId, bookId } = req.params;
+        const userId = (req.user && (req.user.id || req.user._id)) || null;
+
+        if (!userId) return res.status(401).json({ success: false, message: "Unauthorized" });
+
+        const mailbox = await Mailbox.findById(mailboxId);
+        if (!mailbox) return res.status(404).json({ success: false, message: "Paketnik ne obstaja." });
+
+        const book = mailbox.books.id(bookId);
+        if (!book) return res.status(404).json({ success: false, message: "Knjiga ni najdena." });
+
+        // Avoid duplicates
+        const already = (book.interested || []).some(i => String(i) === String(userId));
+        if (!already) {
+            book.interested = [...(book.interested || []), userId];
+            await mailbox.save();
+        }
+
+        await mailbox.populate([
+            { path: "books.offeredBy", select: "name email" },
+            { path: "books.interested", select: "name email" }
+        ]);
+
+        return res.status(200).json({ success: true, message: "Interest recorded", mailbox });
+    } catch (error) {
+        console.error("Napaka pri beleženju interesa:", error);
+        return res.status(500).json({ success: false, error: error.message });
+    }
+};
+
 exports.create = async (req, res) => {
     const mailbox = await Mailbox.create(req.body);
     res.json(mailbox);
@@ -86,9 +119,30 @@ exports.addBooks = async (req, res) => {
             return res.status(404).json({ success: false, message: "Paketnik ne obstaja." });
         }
 
+        // Normalize incoming books: accept either strings or objects { title, author }
+        const userId = (req.user && (req.user.id || req.user._id)) || null;
+        const normalized = (books || []).map(b => {
+            if (typeof b === "string") {
+                return { title: b, author: "", offeredBy: userId, interested: [] };
+            }
+
+            return {
+                title: b.title || "",
+                author: b.author || "",
+                offeredBy: userId,
+                interested: []
+            };
+        }).filter(x => x.title && x.title.trim() !== "");
+
         // Dodaj nove knjige v seznam
-        mailbox.books = [...(mailbox.books || []), ...books];
+        mailbox.books = [...(mailbox.books || []), ...normalized];
         await mailbox.save();
+
+        // Populate offeredBy and interested users for response
+        await mailbox.populate([
+            { path: "books.offeredBy", select: "name email" },
+            { path: "books.interested", select: "name email" }
+        ]);
 
         return res.status(200).json({ success: true, message: "Knjige uspešno dodane!", mailbox });
     } catch (error) {

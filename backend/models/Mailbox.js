@@ -13,7 +13,15 @@ const MailboxSchema = new mongoose.Schema({
         ref: "User"
     },
     items: [String],
-    books: [String]
+    books: [
+        {
+            title: { type: String, required: true },
+            author: { type: String },
+            offeredBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+            offeredAt: { type: Date, default: Date.now },
+            interested: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }]
+        }
+    ]
 }, { timestamps: true });
 
 module.exports = mongoose.model("Mailbox", MailboxSchema);

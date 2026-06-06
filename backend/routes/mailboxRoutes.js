@@ -7,8 +7,10 @@ const mailboxController = require("../controllers/mailboxController");
 
 router.get("/", async (req, res) => {
     try {
-        const mailboxes = await Mailbox.find({})
-            .populate("owner", "name email");
+            const mailboxes = await Mailbox.find({})
+                .populate("owner", "name email")
+                .populate({ path: "books.offeredBy", select: "name email" })
+                .populate({ path: "books.interested", select: "name email" });
         return res.status(200).json(mailboxes);
     } catch (error) {
         console.error("Napaka pri branju paketnikov:", error);
@@ -65,5 +67,8 @@ router.post("/:id/unlock", authMiddleware, async (req, res) => {
 });
 
 router.post("/:id/books", authMiddleware, mailboxController.addBooks);
+
+// Express interest in a specific book (book is a subdocument with _id)
+router.post("/:mailboxId/books/:bookId/interest", authMiddleware, mailboxController.interestBook);
 
 module.exports = router;
