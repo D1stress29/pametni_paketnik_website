@@ -9,6 +9,10 @@ function ProfilePage() {
     const [message, setMessage] = useState("");
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
+    const [expandedMailbox, setExpandedMailbox] = useState(null);
+    const [titleInput, setTitleInput] = useState("");
+    const [authorInput, setAuthorInput] = useState("");
+    const [booksList, setBooksList] = useState({});
 
     useEffect(() => {
         fetchProfile();
@@ -55,6 +59,57 @@ function ProfilePage() {
             setMessage("Napaka pri shranjevanju izbrane lokacije.");
         } finally {
             setSaving(false);
+        }
+    };
+
+    const toggleAddBooks = (mailboxId) => {
+        setExpandedMailbox(expandedMailbox === mailboxId ? null : mailboxId);
+    };
+
+    const addBook = (mailboxId) => {
+        if (titleInput.trim() === "") {
+            alert("Prosim vnesite naslov knjige!");
+            return;
+        }
+        const newBook = { title: titleInput.trim(), author: authorInput.trim() };
+        setBooksList(prev => ({
+            ...prev,
+            [mailboxId]: [...(prev[mailboxId] || []), newBook]
+        }));
+        setTitleInput("");
+        setAuthorInput("");
+    };
+
+    const removeBook = (mailboxId, index) => {
+        setBooksList(prev => ({
+            ...prev,
+            [mailboxId]: (prev[mailboxId] || []).filter((_, i) => i !== index)
+        }));
+    };
+
+    const submitBooks = async (mailboxId) => {
+        try {
+            const booksPayload = booksList[mailboxId] || [];
+            if (booksPayload.length === 0) {
+                alert("Dodajte vsaj eno knjigo!");
+                return;
+            }
+
+            await axios.post(
+                `http://localhost:5000/api/mailboxes/${mailboxId}/books`,
+                { books: booksPayload },
+                { headers: { Authorization: "Bearer " + localStorage.getItem("token") } }
+            );
+
+            alert("Knjige uspešno dodane!");
+            setBooksList(prev => ({
+                ...prev,
+                [mailboxId]: []
+            }));
+            setExpandedMailbox(null);
+            fetchMailboxes();
+        } catch (err) {
+            alert("Napaka pri dodajanju knjig: " + (err.response?.data?.message || err.message));
         }
     };
 
@@ -117,7 +172,7 @@ function ProfilePage() {
                     </div>
 
                     <div style={{ padding: 24, borderRadius: 16, border: "1px solid #d9e6d3" }}>
-                        <h2>Seznam pametnih paketnikov</h2>
+                        <h2>Seznam pametnih paketnikov in dodajanje knjig</h2>
                         {mailboxes.length === 0 ? (
                             <p>Ni najdenih paketnikov.</p>
                         ) : (
@@ -126,10 +181,65 @@ function ProfilePage() {
                                     <h3 style={{ margin: 0 }}>{mailbox.name}</h3>
                                     <p style={{ margin: "6px 0" }}>{mailbox.location}</p>
                                     <p style={{ margin: "6px 0", color: "#555" }}><strong>Ustvaril:</strong> {mailbox.owner?.name || "Neznan"} | <strong>Ustvarjeno:</strong> {new Date(mailbox.createdAt).toLocaleDateString("sl-SI")}</p>
-                                    <div style={{ marginTop: 10 }}>
-                                        <strong>Predmeti v paketniku:</strong>
-                                        {renderItems(mailbox)}
-                                    </div>
+
+                                    <button
+                                        onClick={() => toggleAddBooks(mailbox._id)}
+                                        style={{ padding: "8px 16px", background: "#2563eb", color: "white", border: "none", borderRadius: 6, cursor: "pointer", marginTop: 10 }}
+                                    >
+                                        {expandedMailbox === mailbox._id ? "Zapri" : "Dodaj knjige"}
+                                    </button>
+
+                                    {expandedMailbox === mailbox._id && (
+                                        <div style={{ marginTop: 16, padding: 12, background: "#f5f5f5", borderRadius: 8 }}>
+                                            <h4>Dodaj knjige (naslov + avtor)</h4>
+                                            <div style={{ display: "flex", gap: 8, marginBottom: 12, flexWrap: "wrap" }}>
+                                                <input
+                                                    type="text"
+                                                    placeholder="Naslov knjige"
+                                                    value={titleInput}
+                                                    onChange={(e) => setTitleInput(e.target.value)}
+                                                    onKeyPress={(e) => e.key === "Enter" && addBook(mailbox._id)}
+                                                    style={{ flex: 1, minWidth: 150, padding: "8px 12px", borderRadius: 4, border: "1px solid #ccc" }}
+                                                />
+                                                <input
+                                                    type="text"
+                                                    placeholder="Avtor (opcijsko)"
+                                                    value={authorInput}
+                                                    onChange={(e) => setAuthorInput(e.target.value)}
+                                                    onKeyPress={(e) => e.key === "Enter" && addBook(mailbox._id)}
+                                                    style={{ minWidth: 150, padding: "8px 12px", borderRadius: 4, border: "1px solid #ccc" }}
+                                                />
+                                                <button onClick={() => addBook(mailbox._id)} style={{ padding: "8px 16px", background: "#16a34a", color: "white", border: "none", borderRadius: 4, cursor: "pointer" }}>
+                                                    Dodaj
+                                                </button>
+                                            </div>
+
+                                            {booksList[mailbox._id] && booksList[mailbox._id].length > 0 && (
+                                                <div>
+                                                    <h5>Knjige na seznamu:</h5>
+                                                    <ul style={{ marginBottom: 12, paddingLeft: 20 }}>
+                                                        {booksList[mailbox._id].map((book, index) => (
+                                                            <li key={index} style={{ marginBottom: 6, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                                                                <span>{book.title}{book.author ? ` — ${book.author}` : ""}</span>
+                                                                <button
+                                                                    onClick={() => removeBook(mailbox._id, index)}
+                                                                    style={{ padding: "4px 8px", background: "#dc2626", color: "white", border: "none", borderRadius: 4, cursor: "pointer", fontSize: 12 }}
+                                                                >
+                                                                    Odstrani
+                                                                </button>
+                                                            </li>
+                                                        ))}
+                                                    </ul>
+                                                    <button
+                                                        onClick={() => submitBooks(mailbox._id)}
+                                                        style={{ padding: "10px 16px", background: "#059669", color: "white", border: "none", borderRadius: 6, cursor: "pointer", fontWeight: "bold" }}
+                                                    >
+                                                        Pošlji knjige
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
                                 </div>
                             ))
                         )}
