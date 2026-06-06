@@ -1,6 +1,7 @@
 const User = require("../models/User");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
+const path = require("path");
 
 exports.register = async (req, res) => {
     try {
@@ -10,12 +11,21 @@ exports.register = async (req, res) => {
 
         const hashed = await bcrypt.hash(password, 10);
 
-        const user = await User.create({
+  
+        const userData = {
             name,
             email,
             passwordHash: hashed,
             role
-        });
+        };
+
+        if (req.file) {
+            const relativePath = path.relative(__dirname, req.file.path);
+            userData.faceImage = relativePath;
+            console.log("File uploaded:", userData.faceImage);
+        }
+
+        const user = await User.create(userData);
 
         console.log("User created:", user); 
         const safeUser = user.toObject();
