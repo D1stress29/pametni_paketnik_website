@@ -4,10 +4,11 @@ on:
   push:
     branches:
       - main
-
+      - develop
   pull_request:
     branches:
       - main
+      - develop
 
 jobs:
 
@@ -20,16 +21,23 @@ jobs:
         working-directory: frontend
 
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
         with:
           node-version: 20
 
-      - run: npm install
+      - name: Install dependencies
+        run: npm install
 
-      - run: npm ls
+      - name: Build frontend
+        run: npm run build
+
+      # Ko boste imeli teste:
+      # - name: Run tests
+      #   run: npm test -- --watchAll=false
 
   backend:
 
@@ -40,13 +48,17 @@ jobs:
         working-directory: backend
 
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
         with:
           node-version: 20
 
-      - run: npm install
+      - name: Install dependencies
+        run: npm install
 
-      - run: npm ls
+      # Ko boste imeli teste:
+      # - name: Run tests
+      #   run: npm test
