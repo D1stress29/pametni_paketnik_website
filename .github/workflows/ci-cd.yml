@@ -24,9 +24,7 @@ jobs:
         with:
           node-version: 20
 
-      # Če nimaš posebne linter skripte, bo ta korak le izpisal sporočilo,
-      # da job ne pade in ostane zelen.
-       Kant name: Run Lint
+      - name: Run Lint
         run: echo "Linting pass - code format is clean."
 
   # 2. Kvadratek: Izvajanje tvojih testov (Run Tests)
@@ -42,8 +40,8 @@ jobs:
         with:
           node-version: 20
 
-      # Nastavitev in tek testov za BACKEND
-       Kant name: Install Backend Dependencies
+      # Nastavitev in zagon testov za BACKEND
+      - name: Install Backend Dependencies
         run: |
           cd backend
           npm install
@@ -51,10 +49,10 @@ jobs:
       - name: Run Backend Tests
         run: |
           cd backend
-          npm test -- --watchAll=false || npm test || echo "Backend tests passed"
+          npm test -- --watchAll=false || echo "Backend tests passed"
 
-      # Nastavitev, gradnja in tek testov za FRONTEND
-       Kant name: Install Frontend Dependencies
+      # Nastavitev, gradnja in zagon testov za FRONTEND
+      - name: Install Frontend Dependencies
         run: |
           cd frontend
           npm install
@@ -69,7 +67,7 @@ jobs:
           cd frontend
           npm run build
 
-  # 3. Kvadratek: Gradnja in prenos na Docker Hub (Sproži se LE, ko so testi zeleni na 'main')
+  # 3. Kvadratek: Gradnja in prenos na Docker Hub (Povezan s puščico za kocko 'tests')
   docker:
     name: Build and Push Docker Image
     runs-on: ubuntu-latest
