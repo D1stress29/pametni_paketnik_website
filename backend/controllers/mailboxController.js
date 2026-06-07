@@ -1,98 +1,109 @@
 const Mailbox = require("../models/Mailbox");
 const UnlockLog = require("../models/UnlockLog");
 
+// GET ALL MAILBOXES
 exports.getAll = async (req, res) => {
-    const mailboxes = await Mailbox.find().populate("owner");
-    res.json(mailboxes);
-};
-
-exports.create = async (req, res) => {
-    const mailbox = await Mailbox.create(req.body);
-    res.json(mailbox);
-};
-
-exports.update = async (req, res) => {
-    const mailbox = await Mailbox.findByIdAndUpdate(
-        req.params.id,
-        req.body,
-        { new: true }
-    );
-
-    res.json(mailbox);
-};
-
-exports.remove = async (req, res) => {
-    await Mailbox.findByIdAndDelete(req.params.id);
-    res.json({ message: "Deleted" });
-};
-
-
-
-exports.unlock = async (req, res) => {
-    // 1. IZPIS PODATKOV V KONZOLO STREŽNIKA
-    console.log("==========================================");
-    console.log("--> PREJETA ZAHTEVA ZA ODKLEPANJE <--");
-    console.log("1. URL parametri (req.params):", req.params);
-    console.log("2. Telo zahteve (req.body):", req.body);
-    console.log("3. Podatki iz JWT (req.user):", req.user);
-    console.log("==========================================");
-
     try {
-        const mailbox = await Mailbox.findById(req.params.id);
-        if (!mailbox) {
-            console.log("NAPAKA: Paketnik z ID " + req.params.id + " ne obstaja v bazi.");
-            return res.status(404).json({ message: "Mailbox not found" });
-        }
+        const mailboxes = await Mailbox.find()
+            .populate("owner", "name email")
+            .populate("books.offeredBy", "name email")
+            .populate("books.interested", "name email");
 
-        mailbox.isLocked = false;
-        await mailbox.save();
-
-        // Ugotovimo, kje vse se lahko skriva ID uporabnika
-        let prejetiUserId = null;
-        if (req.user && req.user.id) prejetiUserId = req.user.id;
-        if (req.user && req.user._id) prejetiUserId = req.user._id;
-        if (req.body && req.body.userId) prejetiUserId = req.body.userId;
-
-        console.log("Končni ugotovljeni UserId za vnos v bazo:", prejetiUserId);
-
-        // USTVARJANJE LOGA
-        const noviLog = await UnlockLog.create({
-            mailbox: mailbox._id,
-            user: prejetiUserId, // Če je to null, bo Mongoose polje pustil prazno
-            unlockMethod: req.body.unlockMethod || "Mobilna aplikacija",
-            success: true
-        });
-
-        console.log("LOG USPEŠNO ZAPISAN V BAZO:", noviLog);
-        res.json({ message: "Mailbox unlocked successfully", log: noviLog });
-
+        res.json(mailboxes);
     } catch (err) {
-        console.error("KRITIČNA NAPAKA PRI SHRANJEVANJU:", err);
         res.status(500).json({ error: err.message });
     }
 };
 
+// INTEREST BOOK
+exports.interestBook = async (req, res) => {
+    try {
+        const { mailboxId, bookId } = req.params;
+        const userId = req.user?.id || req.user?._id;
+
+        if (!userId)
+            return res.status(401).json({ message: "Unauthorized" });
+
+        const mailbox = await Mailbox.findById(mailboxId);
+        if (!mailbox)
+            return res.status(404).json({ message: "Mailbox not found" });
+
+        const book = mailbox.books.id(bookId);
+        if (!book)
+            return res.status(404).json({ message: "Book not found" });
+
+        const already = book.interested.some(i => String(i) === String(userId));
+
+        if (!already) {
+            book.interested.push(userId);
+            await mailbox.save();
+        }
+
+        await mailbox.populate([
+            { path: "books.offeredBy", select: "name email" },
+            { path: "books.interested", select: "name email" }
+        ]);
+
+        res.json({ success: true, mailbox });
+
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+};
+
+// ADD BOOKS (FIXED VALIDATION BUG)
 exports.addBooks = async (req, res) => {
     try {
         const { id } = req.params;
         const { books } = req.body;
 
-        if (!books || !Array.isArray(books) || books.length === 0) {
-            return res.status(400).json({ success: false, message: "Prosim vnesite seznam knjig." });
+        if (!Array.isArray(books) || books.length === 0) {
+            return res.status(400).json({ message: "No books provided" });
         }
 
         const mailbox = await Mailbox.findById(id);
         if (!mailbox) {
-            return res.status(404).json({ success: false, message: "Paketnik ne obstaja." });
+            return res.status(404).json({ message: "Mailbox not found" });
         }
 
-        // Dodaj nove knjige v seznam
-        mailbox.books = [...(mailbox.books || []), ...books];
+        const userId = req.user?.id || req.user?._id;
+
+        const normalized = books
+    .map(b => {
+        let title = "";
+        let author = "";
+
+        if (typeof b === "string") {
+            title = b;
+        } else if (typeof b === "object" && b !== null) {
+            title = b.title;
+            author = b.author;
+        }
+
+        // 🔥 HARD SAFETY CHECK
+        if (!title || typeof title !== "string") return null;
+
+        return {
+            title: String(title).trim(),
+            author: String(author || "").trim(),
+            offeredBy: userId,
+            interested: []
+        };
+    })
+    .filter(Boolean);
+
+        mailbox.books.push(...normalized);
         await mailbox.save();
 
-        return res.status(200).json({ success: true, message: "Knjige uspešno dodane!", mailbox });
-    } catch (error) {
-        console.error("Napaka pri dodajanju knjig:", error);
-        return res.status(500).json({ success: false, error: error.message });
+        await mailbox.populate([
+            { path: "books.offeredBy", select: "name email" },
+            { path: "books.interested", select: "name email" }
+        ]);
+
+        res.json({ success: true, mailbox });
+
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: err.message });
     }
 };

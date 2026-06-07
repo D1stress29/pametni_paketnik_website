@@ -3,7 +3,6 @@ const FormData = require("form-data");
 const fs = require("fs");
 
 async function verifyFace(registeredImagePath, selfiePath) {
-  try {
      if (!fs.existsSync(registeredImagePath)) {
       return {
         verified: false,
@@ -35,11 +34,7 @@ console.log("SELFIE EXISTS:", fs.existsSync(selfiePath));
    
     return response.data;
 
-  } catch (err) {
-    console.error("Face verification error:", err.message);
-    return { verified: false, error: err.message };
-  }
-}
+  } 
 
 module.exports = verifyFace;
 
