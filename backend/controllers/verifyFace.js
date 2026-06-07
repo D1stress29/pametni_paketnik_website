@@ -1,40 +1,29 @@
-const axios = require("axios");
+const axios    = require("axios");
 const FormData = require("form-data");
-const fs = require("fs");
+const fs       = require("fs");
+
+const FACE_SERVICE_URL = process.env.FACE_SERVICE_URL || "http://localhost:8000/verify-face";
 
 async function verifyFace(registeredImagePath, selfiePath) {
-     if (!fs.existsSync(registeredImagePath)) {
-      return {
-        verified: false,
-        error: "Registered face image file does not exist",
-        path: registeredImagePath
-      };
+    // BUG FIX: preverimo oba podata pred klicem servisa
+    if (!registeredImagePath || !fs.existsSync(registeredImagePath)) {
+        return { verified: false, error: "Registrirana slika ne obstaja.", path: registeredImagePath };
+    }
+    if (!selfiePath || !fs.existsSync(selfiePath)) {
+        return { verified: false, error: "Selfie slika ne obstaja.", path: selfiePath };
     }
 
-    if (!fs.existsSync(selfiePath)) {
-      return {
-        verified: false,
-        error: "Selfie image file does not exist",
-        path: selfiePath
-      };
-    }
     const form = new FormData();
-    console.log("REGISTERED EXISTS:", fs.existsSync(registeredImagePath));
-console.log("SELFIE EXISTS:", fs.existsSync(selfiePath));
-
     form.append("registered_image", fs.createReadStream(registeredImagePath));
-    form.append("selfie_image", fs.createReadStream(selfiePath));
+    form.append("selfie_image",     fs.createReadStream(selfiePath));
 
-    const response = await axios.post(
-      "http://localhost:8000/verify-face",
-      form,
-      { headers: form.getHeaders() }
-    );
+    // BUG FIX: timeout da ne čakamo večno če servis ne odgovori
+    const response = await axios.post(FACE_SERVICE_URL, form, {
+        headers: form.getHeaders(),
+        timeout: 15000  // 15 sekund
+    });
 
-   
     return response.data;
-
-  } 
+}
 
 module.exports = verifyFace;
-
