@@ -1,74 +1,69 @@
 const express = require("express");
 const router = express.Router();
+
 const Mailbox = require("../models/Mailbox");
 const UnlockLog = require("../models/UnlockLog");
+
 const authMiddleware = require("../middleware/authMiddleware");
 const mailboxController = require("../controllers/mailboxController");
 
+
+
 router.get("/", async (req, res) => {
     try {
-            const mailboxes = await Mailbox.find({})
-                .populate("owner", "name email")
-                .populate({ path: "books.offeredBy", select: "name email" })
-                .populate({ path: "books.interested", select: "name email" });
-        return res.status(200).json(mailboxes);
-    } catch (error) {
-        console.error("Napaka pri branju paketnikov:", error);
-        return res.status(500).json({ success: false, error: error.message });
+        const mailboxes = await Mailbox.find()
+            .populate("owner", "name email")
+            .populate("books.offeredBy", "name email")
+            .populate("books.interested", "name email");
+
+        const cleaned = mailboxes.map(m => ({
+            ...m.toObject(),
+            books: (m.books || []).filter(b =>
+                b && typeof b.title === "string"
+            ).map(b => ({
+                _id: b._id,
+                title: b.title,
+                author: b.author || "",
+                offeredBy: b.offeredBy,
+                interested: b.interested || []
+            }))
+        }));
+
+        res.json(cleaned);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
     }
 });
 
+// FIXED UNLOCK (no boxId bug)
 router.post("/:id/unlock", authMiddleware, async (req, res) => {
-    const { id } = req.params; 
-    
-    const končniUserId = (req.user ? req.user.id : null) || req.body.userId;
-    const metodaOdklepa = req.body.unlockMethod || "Aplikacija";
-
     try {
-        // 1. Pretvorba v številko pred iskanjem v bazi
-        const numericId = Number(id) || Number(req.body.deviceId);
-        let mailbox = await Mailbox.findOne({ boxId: numericId });
-        
-        // 2. ČE PAKETNIK NE OBSTAJA, GA USTVARIMO NA HITRO
-        if (!mailbox) {
-            console.log(`-> Paketnik ${numericId} ne obstaja. Ustvarjam nov paketnik v bazi...`);
-            
-            mailbox = new Mailbox({
-                boxId: numericId,
-                name: `Paketnik ${numericId}`, // Avtomatsko ime
-                isLocked: false,               // Ker ga ravno odpiramo, je odklenjen
-                owner: končniUserId            // Nastavimo trenutnega uporabnika kot lastnika
-            });
-            
-            await mailbox.save();
-            console.log(`-> Nov paketnik uspešno dodan:`, mailbox);
-        } else {
-            // Če paketnik že obstaja, mu samo posodobimo stanje
-            mailbox.isLocked = false;
-            await mailbox.save();
-        }
+        const mailbox = await Mailbox.findById(req.params.id);
 
-        // 3. Shranjevanje loga za odklepanje (sedaj bo vedno delovalo, saj 'mailbox._id' zagotovo obstaja)
-        const noviLog = new UnlockLog({
+        if (!mailbox)
+            return res.status(404).json({ message: "Mailbox not found" });
+
+        mailbox.isLocked = false;
+        await mailbox.save();
+
+        const log = await UnlockLog.create({
             mailbox: mailbox._id,
-            user: končniUserId,
-            unlockMethod: metodaOdklepa,
+            user: req.user?.id,
+            unlockMethod: req.body.unlockMethod || "app",
             success: true
         });
-        await noviLog.save();
 
-        console.log("LOG USPEŠNO ZAPISAN V BAZO:", noviLog);
-        return res.status(200).json({ success: true, message: "Paketnik uspešno registriran in odklenjen!" });
+        res.json({ success: true, log });
 
-    } catch (error) {
-        console.error("Napaka pri odklepanju/ustvarjanju paketnika:", error);
-        return res.status(500).json({ success: false, error: error.message });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
     }
 });
 
+// ADD BOOKS
 router.post("/:id/books", authMiddleware, mailboxController.addBooks);
 
-// Express interest in a specific book (book is a subdocument with _id)
+// INTEREST
 router.post("/:mailboxId/books/:bookId/interest", authMiddleware, mailboxController.interestBook);
 
 module.exports = router;

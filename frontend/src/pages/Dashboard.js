@@ -7,6 +7,15 @@ function Dashboard() {
     const [mailboxes, setMailboxes] = useState([]);
     const [books, setBooks] = useState([]);
     const [error, setError] = useState(null);
+    const fallbackBooks = [
+    { title: "The Hobbit", author: "J.R.R. Tolkien", offeredBy:"Test" },
+    { title: "1984", author: "George Orwell", offeredBy:"Brabimbo" },
+    { title: "Dune", author: "Frank Herbert", offeredBy:"Me" },
+    { title: "Harry Potter", author: "J.K. Rowling", offeredBy:"Brabimbo" },
+    { title: "The Alchemist", author: "Paulo Coelho",offeredBy:"Brabimbo" },
+    { title: "Clean Code", author: "Robert C. Martin",offeredBy:"Brabimbo" },
+    { title: "Sapiens", author: "Yuval Noah Harari",offeredBy:"Brabimbo" }
+];
 
     useEffect(() => {
         fetchMailboxes();
@@ -20,6 +29,7 @@ function Dashboard() {
 
     const fetchMailboxes = async () => {
         try {
+
 
             const res = await axios.get(
                 "http://localhost:5000/api/mailboxes", 
@@ -70,6 +80,8 @@ function Dashboard() {
             });
             setBooks(flat);
             setError(null);
+            console.log("MAILBOXES:", res.data);
+console.log("FLAT BOOKS:", flat);
         } catch (err) {
             console.error("Napaka pri pridobivanju paketnikov:", err);
             setError("Ni mogoče naložiti paketnikov. Preveri backend ruto.");
@@ -103,52 +115,132 @@ function Dashboard() {
             alert("Napaka pri beleženju interesa: " + (err.response?.data?.message || err.message));
         }
     };
-
     return (
-        <>
-            <Header />
+    <>
+        <Header />
 
-            <div style={{ padding: 40 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
-                    <div>
-                        <h1>Dashboard</h1>
-                        <p>Pregled knjig v paketnikih. Dodajte knjige v svojem Profilu.</p>
-                    </div>
-                </div>
-
-                {error && <p style={{ color: "red", fontWeight: "bold" }}>{error}</p>}
-
-                <div style={{ marginBottom: 18 }}>
-                    <h2>Knjige v paketnikih</h2>
-                    {books.length === 0 ? (
-                        <p>Ni najdenih knjig.</p>
-                    ) : (
-                        books.map((b, idx) => (
-                            <div key={b._id || idx} style={{ padding: 12, border: "1px solid #ddd", borderRadius: 10, marginBottom: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <div>
-                                    <strong>{b.title}</strong>
-                                    <div style={{ color: "#555" }}>{b.author ? `Avtor: ${b.author}` : "Avtor: neznan"}</div>
-                                    <div style={{ color: "#444", marginTop: 6 }}><strong>Ponudnik:</strong> {b.offeredBy || "Neznan"} | <strong>Paketnik:</strong> {b.mailbox?.name}</div>
-                                </div>
-                                <div style={{ textAlign: 'right' }}>
-                                    <div style={{ marginBottom: 8 }}><strong>{b.interestedCount || 0}</strong> interested</div>
-                                    {b.bookId ? (
-                                        <button
-                                            onClick={() => expressInterest(b.mailbox.id, b.bookId)}
-                                            disabled={b.interestedByCurrent}
-                                            style={{ padding: "8px 12px", background: b.interestedByCurrent ? '#94a3b8' : '#f97316', color: 'white', border: 'none', borderRadius: 6, cursor: b.interestedByCurrent ? 'default' : 'pointer' }}
-                                        >
-                                            {b.interestedByCurrent ? "You're interested" : "I'm interested"}
-                                        </button>
-                                    ) : null}
-                                </div>
-                            </div>
-                        ))
-                    )}
+        <div style={{ padding: 40 }}>
+            <div
+                style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    marginBottom: 24
+                }}
+            >
+                <div>
+                    <h1>Dashboard</h1>
+                    <p>
+                        Pregled knjig v paketnikih. Dodajte knjige v svojem Profilu.
+                    </p>
                 </div>
             </div>
-        </>
+
+            {error && (
+                <p style={{ color: "red", fontWeight: "bold" }}>
+                    {error}
+                </p>
+            )}
+
+            <div style={{ marginBottom: 18 }}>
+                <h2>Knjige v paketnikih</h2>
+
+                {books.length === 0 ? (
+                    <p>Ni najdenih knjig.</p>
+                ) : (
+                    <div
+                        style={{
+                            display: "flex",
+                            flexDirection: "column",
+                            gap: 10
+                        }}
+                    >
+                       {books.map((b, idx) => {
+    const fallback =
+        fallbackBooks[
+            Math.abs(
+                b._id
+                    ? b._id
+                          .split("")
+                          .reduce((a, c) => a + c.charCodeAt(0), 0)
+                    : idx
+            ) % fallbackBooks.length
+        ];
+const title = (b.title || "").toString().trim();
+const author = (b.author || "").toString().trim();
+const offeredBy =
+    typeof b.offeredBy === "object"
+        ? b.offeredBy?.name
+        : (b.offeredBy || "");
+
+    return (
+        <div
+            key={`${b.mailbox.id}-${b._id || idx}-${idx}`}
+            style={{
+                padding: 14,
+                border: "1px solid #ddd",
+                borderRadius: 10,
+                background: "white",
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center"
+            }}
+        >
+            {/* LEFT SIDE */}
+            <div>
+                <strong>{title}</strong>
+
+                <div style={{ color: "#555" }}>
+                    Avtor: {author}
+                </div>
+
+                <div style={{ color: "#444", marginTop: 6 }}>
+                    <strong>Ponudnik:</strong> {offeredBy} |{" "}
+                    <strong>Paketnik:</strong> {b.mailbox?.name}
+                </div>
+            </div>
+
+            {/* RIGHT SIDE */}
+            <div style={{ textAlign: "right" }}>
+                <div style={{ marginBottom: 8 }}>
+                    <strong>{b.interestedCount || 0}</strong> interested
+                </div>
+
+                {b.bookId && (
+                    <button
+                        onClick={() =>
+                            expressInterest(b.mailbox.id, b.bookId)
+                        }
+                        disabled={b.interestedByCurrent}
+                        style={{
+                            padding: "8px 12px",
+                            background: b.interestedByCurrent
+                                ? "#94a3b8"
+                                : "#f97316",
+                            color: "white",
+                            border: "none",
+                            borderRadius: 6,
+                            cursor: b.interestedByCurrent
+                                ? "default"
+                                : "pointer"
+                        }}
+                    >
+                        {b.interestedByCurrent
+                            ? "You're interested"
+                            : "I'm interested"}
+                    </button>
+                )}
+            </div>
+        </div>
     );
+})}
+                    </div>
+                )}
+            </div>
+        </div>
+    </>
+);
+
 }
 
 export default Dashboard;
