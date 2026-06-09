@@ -1,5 +1,14 @@
-const Mailbox   = require("../models/Mailbox");
-const UnlockLog = require("../models/UnlockLog");
+const mongoose   = require("mongoose");
+const Mailbox    = require("../models/Mailbox");
+const UnlockLog  = require("../models/UnlockLog");
+
+async function findMailbox(identifier) {
+    if (mongoose.Types.ObjectId.isValid(identifier)) {
+        const mailbox = await Mailbox.findById(identifier);
+        if (mailbox) return mailbox;
+    }
+    return Mailbox.findOne({ deviceId: identifier });
+}
 
 // ── ADD BOOKS ─────────────────────────────────────────────────────────────────
 exports.addBooks = async (req, res) => {
@@ -11,7 +20,7 @@ exports.addBooks = async (req, res) => {
             return res.status(400).json({ message: "Ni knjig za dodati." });
         }
 
-        const mailbox = await Mailbox.findById(id);
+        const mailbox = await findMailbox(id);
         if (!mailbox) return res.status(404).json({ message: "Paketnik ni najden." });
 
         const userId = req.user?.id || req.user?._id;
@@ -66,7 +75,7 @@ exports.deleteBook = async (req, res) => {
     try {
         const { id, bookId } = req.params;
 
-        const mailbox = await Mailbox.findById(id);
+        const mailbox = await findMailbox(id);
         if (!mailbox) return res.status(404).json({ message: "Paketnik ni najden." });
 
         const book = mailbox.books.id(bookId);
@@ -91,7 +100,7 @@ exports.interestBook = async (req, res) => {
 
         if (!userId) return res.status(401).json({ message: "Unauthorized." });
 
-        const mailbox = await Mailbox.findById(mailboxId);
+        const mailbox = await findMailbox(mailboxId);
         if (!mailbox) return res.status(404).json({ message: "Paketnik ni najden." });
 
         const book = mailbox.books.id(bookId);

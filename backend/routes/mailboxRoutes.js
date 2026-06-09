@@ -1,10 +1,48 @@
-const express = require("express");
-const router  = express.Router();
+const express  = require("express");
+const jwt      = require("jsonwebtoken");
+const mongoose = require("mongoose");
+const router   = express.Router();
 
 const Mailbox           = require("../models/Mailbox");
 const UnlockLog         = require("../models/UnlockLog");
 const authMiddleware    = require("../middleware/authMiddleware");
 const mailboxController = require("../controllers/mailboxController");
+
+async function findMailbox(identifier) {
+    if (mongoose.Types.ObjectId.isValid(identifier)) {
+        const mailbox = await Mailbox.findById(identifier);
+        if (mailbox) return mailbox;
+    }
+
+    const mailboxByDevice = await Mailbox.findOne({ deviceId: identifier });
+    if (mailboxByDevice) return mailboxByDevice;
+
+    // Fallback for mailboxes created without deviceId where the name includes a numeric identifier.
+    if (/^\d+$/.test(identifier)) {
+        return Mailbox.findOne({ name: new RegExp(`\\b${identifier}\\b`, "i") }).sort({ createdAt: -1 });
+    }
+
+    return null;
+}
+
+function optionalAuthMiddleware(req, res, next) {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+        return next();
+    }
+
+    const token = authHeader.split(" ")[1];
+    if (!token) {
+        return next();
+    }
+
+    try {
+        req.user = jwt.verify(token, process.env.JWT_SECRET);
+    } catch (err) {
+        // Ignore invalid/expired token for optional auth.
+    }
+    next();
+}
 
 // ── GET ALL ──────────────────────────────────────────────────────────────────
 // BUG FIX: bila je brez avtentikacije — zdaj opcijsko (javni prikaz je ok,
@@ -44,12 +82,13 @@ router.get("/", async (req, res) => {
 // ── GET ONE ──────────────────────────────────────────────────────────────────
 router.get("/:id", async (req, res) => {
     try {
-        const mailbox = await Mailbox.findById(req.params.id)
-            .populate("owner", "name email")
-            .populate("books.offeredBy", "name email")
-            .populate("books.interested", "name email");
-
+        const mailbox = await findMailbox(req.params.id);
         if (!mailbox) return res.status(404).json({ message: "Paketnik ni najden." });
+
+        await mailbox.populate("owner", "name email");
+        await mailbox.populate("books.offeredBy", "name email");
+        await mailbox.populate("books.interested", "name email");
+
         res.json(mailbox);
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -90,11 +129,13 @@ router.put("/:id", authMiddleware, async (req, res) => {
         if (deviceId  !== undefined) update.deviceId  = deviceId.trim();
         if (isLocked  !== undefined) update.isLocked  = isLocked;
 
-        const mailbox = await Mailbox.findByIdAndUpdate(
-            req.params.id, update, { new: true }
-        ).populate("owner", "name email");
-
+        const mailbox = await findMailbox(req.params.id);
         if (!mailbox) return res.status(404).json({ message: "Paketnik ni najden." });
+
+        Object.assign(mailbox, update);
+        await mailbox.save();
+        await mailbox.populate("owner", "name email");
+
         res.json(mailbox);
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -104,8 +145,11 @@ router.put("/:id", authMiddleware, async (req, res) => {
 // ── DELETE ───────────────────────────────────────────────────────────────────
 router.delete("/:id", authMiddleware, async (req, res) => {
     try {
-        await Mailbox.findByIdAndDelete(req.params.id);
-        await UnlockLog.deleteMany({ mailbox: req.params.id });
+        const mailbox = await findMailbox(req.params.id);
+        if (!mailbox) return res.status(404).json({ message: "Paketnik ni najden." });
+
+        await Mailbox.findByIdAndDelete(mailbox._id);
+        await UnlockLog.deleteMany({ mailbox: mailbox._id });
         res.json({ message: "Paketnik in vsi logi so bili izbrisani." });
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -114,22 +158,40 @@ router.delete("/:id", authMiddleware, async (req, res) => {
 
 // ── UNLOCK ───────────────────────────────────────────────────────────────────
 // BUG FIX: prej je req.body.method shranjevalo v log, zdaj req.body.unlockMethod
-router.post("/:id/unlock", authMiddleware, async (req, res) => {
+router.post("/:id/unlock", optionalAuthMiddleware, async (req, res) => {
     try {
-        const mailbox = await Mailbox.findById(req.params.id);
-        if (!mailbox) return res.status(404).json({ message: "Paketnik ni najden." });
+        console.log("Unlock request", {
+            paramsId: req.params.id,
+            body: req.body,
+            user: req.user
+        });
+
+        let mailbox = await findMailbox(req.params.id);
+        if (!mailbox) {
+            console.log("Mailbox not found by route id, fallback deviceId", req.body.deviceId);
+            if (req.body.deviceId) {
+                mailbox = await findMailbox(req.body.deviceId);
+            }
+        }
+        if (!mailbox) {
+            console.log("Mailbox still not found", { routeId: req.params.id, deviceId: req.body.deviceId });
+            return res.status(404).json({ message: "Paketnik ni najden." });
+        }
+
+        console.log("Mailbox found", { id: mailbox._id.toString(), deviceId: mailbox.deviceId });
 
         mailbox.isLocked = false;
         await mailbox.save();
 
         const log = await UnlockLog.create({
             mailbox:      mailbox._id,
-            user:         req.user.id,
+            user:         req.user?.id || req.body.userId || null,
             unlockMethod: req.body.unlockMethod || req.body.method || "app",
             success:      true,
             timestamp:    new Date()
         });
 
+        console.log("Unlock log created", { logId: log._id.toString(), user: log.user, unlockMethod: log.unlockMethod });
         res.json({ success: true, log, mailbox });
     } catch (err) {
         console.error("Unlock error:", err);
@@ -140,7 +202,7 @@ router.post("/:id/unlock", authMiddleware, async (req, res) => {
 // ── LOCK (bonus ruta) ─────────────────────────────────────────────────────────
 router.post("/:id/lock", authMiddleware, async (req, res) => {
     try {
-        const mailbox = await Mailbox.findById(req.params.id);
+        const mailbox = await findMailbox(req.params.id);
         if (!mailbox) return res.status(404).json({ message: "Paketnik ni najden." });
 
         mailbox.isLocked = true;
