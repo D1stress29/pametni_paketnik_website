@@ -122,6 +122,13 @@ exports.faceLogin = async (req, res) => {
             // Ne blokiramo — pošljemo verified:false naprej
         }
 
+if (!verifyResult.verified) {
+    return res.status(401).json({
+        message: "Obraz se ne ujema.",
+        faceVerification: verifyResult
+    });
+}
+
         const token = jwt.sign(
             { id: user._id, role: user.role },
             process.env.JWT_SECRET,
